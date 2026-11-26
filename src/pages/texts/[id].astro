@@ -146,8 +146,13 @@ const h = hijriYear(t.year);
               });
             }
           });
-          if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
-          else if ((mapData.places||[]).length) map.fitBounds(mapData.places.map(function(p){return [p.lat,p.lon]}), { padding: [30, 30] });
+          function fitMap() {
+            map.invalidateSize();
+            if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+            else if ((mapData.places||[]).length) map.fitBounds(mapData.places.map(function(p){return [p.lat,p.lon]}), { padding: [30, 30] });
+          }
+          if (document.readyState === 'complete') fitMap();
+          else window.addEventListener('load', fitMap);
 
         })();
       </script>
