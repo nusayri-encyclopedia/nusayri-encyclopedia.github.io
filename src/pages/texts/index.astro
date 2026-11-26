@@ -1,23 +1,35 @@
 ---
 import L from '../../layouts/L.astro';
-import texts from '../../data/texts.json';
 import fs from 'node:fs';
 import { yearLabel } from '../../lib/hijri';
+const texts = JSON.parse(fs.readFileSync('src/data/texts.json', 'utf-8'));
 const full = new Set(JSON.parse(fs.readFileSync('src/data/fulltexts.json','utf-8')).map((x)=>x.id));
+let aliases = {};
+try { aliases = JSON.parse(fs.readFileSync('src/data/aliases.json','utf-8')); } catch(e) {}
+let tagsAll = {};
+try { tagsAll = JSON.parse(fs.readFileSync('src/data/tags.json','utf-8')); } catch(e) {}
 const b = import.meta.env.BASE_URL.replace(/\/$/, '');
 const rows=[...texts].sort((a,b)=>(a.year||'9999').localeCompare(b.year||'9999'));
 const pub = rows.filter(r=>full.has(r.id)).length;
-const LAT=[['بوركهارت','Burckhardt بوركهاردت'],['ريتر','Ritter'],['لايد','Lyde'],['والبول','Walpole'],['نيبور','Niebuhr'],['ميشو','Michaud'],['بوجولا','Poujoulat'],['جوانفيل','Joinville'],['فينسوف','Vinsauf'],['كاتافاغو','Catalfago'],['فولف','Wolff'],['ديفريميري','Defrémery'],['جيسوب','Jessup'],['بيتكوفيتش','Petkovich'],['هارتمان','Hartmann'],['لامنس','Lammens'],['دوسو','Dussaud'],['كورتس','Curtiss'],['هامر','Hammer-Purgstall'],['جاويت','Jowett'],['لامرتين','Lamartine'],['بازيلي','Basili'],['ورتابت','Wortabet'],['روسو','Rousseau'],['الصوري','William of Tyre'],['الأولدنبورغي','Wilbrand of Oldenburg'],['فيتري','Jacques de Vitry'],['التطيلي','Benjamin of Tudela'],['إلي سميث','Eli Smith'],['بكنغهام','Buckingham'],['جاك دو فيتري','Jacques de Vitry'],['الإدريسي','al-Idrisi'],['بروكاردوس','Brocardus']];
-const AB='\\u0621-\\u064A';
-function aliases(n){const out=new Set();for(const [ar,lat] of LAT){try{if(new RegExp('(^|[^'+AB+'])'+ar+'(?!['+AB+'])','u').test(n))out.add(lat)}catch(e){}}return [...out].join(' ')}
+const withMap = new Set(rows.filter(r=>tagsAll[r.id]?.m).map(r=>r.id));
+const genres = [...new Set(rows.flatMap(r=>tagsAll[r.id]?.g||[]))].sort();
+const comms = [...new Set(rows.flatMap(r=>tagsAll[r.id]?.c||[]))].sort();
+const regions = [...new Set(rows.flatMap(r=>tagsAll[r.id]?.r||[]))].sort();
+const periods = [...new Set(rows.map(r=>tagsAll[r.id]?.p).filter(Boolean))].sort();
 ---
 <L title="سجل النصوص">
 <h1>سجل النصوص</h1>
 <p class="mut">{rows.length} مصدرًا مرتبة زمنيًا حسب سنة التأليف المرشحة، منها {pub} منشورًا بنصه الكامل. التاريخ الهجري مقابِل تقريبي محسوب.</p>
-<input class="f" id="q" placeholder="ابحث في السجل بالاسم أو السنة">
+<input class="f" id="q" placeholder="ابحث في السجل بالاسم أو السنة أو المؤلف (عربي أو لاتيني) أو الوسوم">
+<div class="filters">
+  <select id="fg"><option value="">النوع: الكل</option>{genres.map(g=><option value={g}>{g}</option>)}</select>
+  <select id="fc"><option value="">الجماعة: الكل</option>{comms.map(g=><option value={g}>{g}</option>)}</select>
+  <select id="fr"><option value="">المنطقة: الكل</option>{regions.map(g=><option value={g}>{g}</option>)}</select>
+  <select id="fp"><option value="">الفترة: الكل</option>{periods.map(g=><option value={g}>{g}</option>)}</select>
+</div>
 <div id="t">
-{rows.map(r=>(
-  <div class="it" data-a={aliases(r.name)} style="border-bottom:1px solid var(--line);padding:10px 4px;overflow-wrap:anywhere">
+{rows.map(r=>{const tg=tagsAll[r.id]; return (
+  <div class="it" data-a={aliases[r.id]||''} data-g={(tg?.g||[]).join('|')} data-c={(tg?.c||[]).join('|')} data-r={(tg?.r||[]).join('|')} data-p={tg?.p||''} style="border-bottom:1px solid var(--line);padding:10px 4px;overflow-wrap:anywhere">
     <div>
       {full.has(r.id)
         ? <a href={b+'/texts/'+r.id+'/'} style="font-weight:700;font-size:18.5px;text-decoration:none">{r.name}</a>
@@ -30,9 +42,38 @@ function aliases(n){const out=new Set();for(const [ar,lat] of LAT){try{if(new Re
         : r.cleared
         ? <span class="tag">قيد الإضافة</span>
         : <span class="tag">محجوب لحين التحقق</span>}
+      {(tg?.g||[]).map(x=><span class="tag tagg">{x}</span>)}
+      {(tg?.c||[]).map(x=><span class="tag tagc">{x}</span>)}
+      {(tg?.r||[]).map(x=><span class="tag tagr">{x}</span>)}
     </div>
   </div>
-))}
+)})}
 </div>
-<script is:inline>const q=document.getElementById('q');const norm=s=>s.toLowerCase().replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[\u0623\u0625\u0622\u0671]/g,'\u0627').replace(/\u0649/g,'\u064A').replace(/\u0629/g,'\u0647');q.oninput=()=>{const v=norm(q.value.trim());document.querySelectorAll('#t .it').forEach(r=>r.style.display=norm(r.textContent+' '+(r.dataset.a||'')).includes(v)?'':'none')}</script>
+<style>
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+.filters select{padding:8px 10px;font:inherit;font-size:14.5px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}
+.tagg{background:#e8dfc8 !important;border-color:#d8c9a4 !important;color:#6b4d16 !important}
+.tagc{background:#e3e8d8 !important;border-color:#c9d4b4 !important;color:#4d5e33 !important}
+.tagr{background:#dde6ea !important;border-color:#bccdd6 !important;color:#33505e !important}
+</style>
+<script is:inline>
+const q=document.getElementById('q');
+const norm=s=>s.toLowerCase().replace(/[ً-ْٰـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+const sel={g:'',c:'',r:'',p:''};
+function apply(){
+  const v=norm(q.value.trim());
+  document.querySelectorAll('#t .it').forEach(r=>{
+    let ok = !v || norm(r.textContent+' '+(r.dataset.a||'')).includes(v);
+    if(ok && sel.g) ok = (r.dataset.g||'').split('|').includes(sel.g);
+    if(ok && sel.c) ok = (r.dataset.c||'').split('|').includes(sel.c);
+    if(ok && sel.r) ok = (r.dataset.r||'').split('|').includes(sel.r);
+    if(ok && sel.p) ok = (r.dataset.p||'')===sel.p;
+    r.style.display = ok ? '' : 'none';
+  });
+}
+q.oninput=apply;
+[['fg','g'],['fc','c'],['fr','r'],['fp','p']].forEach(([id,k])=>{
+  document.getElementById(id).onchange=e=>{sel[k]=e.target.value;apply()};
+});
+</script>
 </L>
