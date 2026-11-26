@@ -1,0 +1,19 @@
+---
+const { title } = Astro.props;
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title} | موسوعة النصيرية والعلويين</title>
+<style>
+:root{--bg:#faf6ee;--ink:#2a2118;--acc:#7a4a1e;--mut:#8a7b69;--line:#e3d9c6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.9 "Noto Naskh Arabic","Amiri",Tahoma,serif}
+header{border-bottom:1px solid var(--line);padding:14px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+header a{color:var(--acc);text-decoration:none;font-weight:bold}header .t{font-size:22px;color:var(--ink)}
+main{overflow-x:hidden;max-width:920px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:28px;line-height:1.4;margin:.2em 0}header{line-height:1.6}.note{background:#fff3d6;border:1px solid #e8cf8e;padding:10px 14px;border-radius:8px;font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;word-break:break-word;overflow-wrap:anywhere}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:right;vertical-align:top}
+input[type=search],input.f{width:100%;padding:10px;font:inherit;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tag{display:inline-block;background:#efe5d0;border-radius:6px;padding:0 8px;font-size:13px;color:var(--acc)}
+.mut{color:var(--mut);font-size:14px}
+</style></head><body>
+<header><a class="t" href={b+'/'}>موسوعة النصيرية والعلويين</a><a href={b+'/texts/'}>النصوص</a><a href={b+'/places/'}>الأماكن</a><a href={b+'/people/'}>الأشخاص</a><a href={b+'/dates/'}>التواريخ</a><a href={b+'/search/'}>بحث</a><a href={b+'/about/'}>عن المشروع</a></header>
+<main data-pagefind-body><slot/></main></body></html>
