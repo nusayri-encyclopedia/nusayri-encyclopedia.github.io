@@ -1,0 +1,8 @@
+---
+import L from '../layouts/L.astro';
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<L title="بحث"><h1>بحث</h1><link href={b+'/pagefind/pagefind-ui.css'} rel="stylesheet"><div id="s"></div>
+<script is:inline define:vars={{b}}>
+const s=document.createElement('script');s.src=b+'/pagefind/pagefind-ui.js';s.onload=()=>new PagefindUI({element:'#s',showImages:false,baseUrl:b+'/'});document.body.append(s);
+</script></L>
