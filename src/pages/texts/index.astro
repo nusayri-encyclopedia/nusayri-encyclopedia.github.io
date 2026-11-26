@@ -7,6 +7,9 @@ const full = new Set(JSON.parse(fs.readFileSync('src/data/fulltexts.json','utf-8
 const b = import.meta.env.BASE_URL.replace(/\/$/, '');
 const rows=[...texts].sort((a,b)=>(a.year||'9999').localeCompare(b.year||'9999'));
 const pub = rows.filter(r=>full.has(r.id)).length;
+const LAT=[['بوركهارت','Burckhardt بوركهاردت'],['ريتر','Ritter'],['لايد','Lyde'],['والبول','Walpole'],['نيبور','Niebuhr'],['ميشو','Michaud'],['بوجولا','Poujoulat'],['جوانفيل','Joinville'],['فينسوف','Vinsauf'],['كاتافاغو','Catalfago'],['فولف','Wolff'],['ديفريميري','Defrémery'],['جيسوب','Jessup'],['بيتكوفيتش','Petkovich'],['هارتمان','Hartmann'],['لامنس','Lammens'],['دوسو','Dussaud'],['كورتس','Curtiss'],['هامر','Hammer-Purgstall'],['جاويت','Jowett'],['لامرتين','Lamartine'],['بازيلي','Basili'],['ورتابت','Wortabet'],['روسو','Rousseau'],['الصوري','William of Tyre'],['الأولدنبورغي','Wilbrand of Oldenburg'],['فيتري','Jacques de Vitry'],['التطيلي','Benjamin of Tudela'],['إلي سميث','Eli Smith'],['بكنغهام','Buckingham'],['جاك دو فيتري','Jacques de Vitry'],['الإدريسي','al-Idrisi'],['بروكاردوس','Brocardus']];
+const AB='\\u0621-\\u064A';
+function aliases(n){const out=new Set();for(const [ar,lat] of LAT){try{if(new RegExp('(^|[^'+AB+'])'+ar+'(?!['+AB+'])','u').test(n))out.add(lat)}catch(e){}}return [...out].join(' ')}
 ---
 <L title="سجل النصوص">
 <h1>سجل النصوص</h1>
@@ -14,7 +17,7 @@ const pub = rows.filter(r=>full.has(r.id)).length;
 <input class="f" id="q" placeholder="ابحث في السجل بالاسم أو السنة">
 <div id="t">
 {rows.map(r=>(
-  <div class="it" style="border-bottom:1px solid var(--line);padding:10px 4px;overflow-wrap:anywhere">
+  <div class="it" data-a={aliases(r.name)} style="border-bottom:1px solid var(--line);padding:10px 4px;overflow-wrap:anywhere">
     <div>
       {full.has(r.id)
         ? <a href={b+'/texts/'+r.id+'/'} style="font-weight:700;font-size:18.5px;text-decoration:none">{r.name}</a>
@@ -31,5 +34,5 @@ const pub = rows.filter(r=>full.has(r.id)).length;
   </div>
 ))}
 </div>
-<script is:inline>const q=document.getElementById('q');q.oninput=()=>{const v=q.value.trim();document.querySelectorAll('#t .it').forEach(r=>r.style.display=r.textContent.includes(v)?'':'none')}</script>
+<script is:inline>const q=document.getElementById('q');const norm=s=>s.toLowerCase().replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[\u0623\u0625\u0622\u0671]/g,'\u0627').replace(/\u0649/g,'\u064A').replace(/\u0629/g,'\u0647');q.oninput=()=>{const v=norm(q.value.trim());document.querySelectorAll('#t .it').forEach(r=>r.style.display=norm(r.textContent+' '+(r.dataset.a||'')).includes(v)?'':'none')}</script>
 </L>
