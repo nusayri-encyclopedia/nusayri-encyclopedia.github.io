@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Fetch texts
+        run: curl -sL "https://drive.google.com/uc?export=download&id=1l29C7yExrICVs-6T0kiyRWjV7-8kVAkB" -o t.zip && unzip -o t.zip -d src/data
       - run: npx astro build
       - run: npx pagefind --site dist --force-language ar
       - uses: actions/upload-pages-artifact@v3
