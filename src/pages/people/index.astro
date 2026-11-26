@@ -6,4 +6,4 @@ const rows=data.slice(0,3000);
 <input class="f" id="q" placeholder="ابحث"><table id="t"><thead><tr><th>اللقب</th><th>الاسم</th><th>الذكر</th><th>الحالة</th></tr></thead><tbody>
 {rows.map(r=><tr><td>{r.title}</td><td>{r.name}</td><td>{r.n}</td><td><span class="tag">غير مؤكد</span></td></tr>)}
 </tbody></table><p class="mut">{rows.length} مدخل</p>
-<script is:inline>const q=document.getElementById('q');q.oninput=()=>{const v=q.value.trim();document.querySelectorAll('#t tbody tr').forEach(r=>r.style.display=r.textContent.includes(v)?'':'none')}</script></L>
+<script is:inline>const q=document.getElementById('q');const norm=s=>s.toLowerCase().replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[\u0623\u0625\u0622\u0671]/g,'\u0627').replace(/\u0649/g,'\u064A').replace(/\u0629/g,'\u0647');q.oninput=()=>{const v=norm(q.value.trim());document.querySelectorAll('#t tbody tr').forEach(r=>r.style.display=norm(r.textContent).includes(v)?'':'none')}</script></L>
