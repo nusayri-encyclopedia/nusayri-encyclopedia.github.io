@@ -10,6 +10,13 @@ export function getStaticPaths() {
 const { t } = Astro.props;
 const b = import.meta.env.BASE_URL.replace(/\/$/, '');
 
+let tagsAll = {};
+try { tagsAll = JSON.parse(fs.readFileSync('src/data/tags.json', 'utf-8')); } catch (e) {}
+let mapsAll = {};
+try { mapsAll = JSON.parse(fs.readFileSync('src/data/maps.json', 'utf-8')); } catch (e) {}
+const tg = tagsAll[t.id] || null;
+const mapData = mapsAll[t.id] || null;
+
 const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const markPages = (s) => esc(s).replace(/\[ص[^\]]*\]/g, (m) => `<span class="pg">${m}</span>`);
 
@@ -54,8 +61,87 @@ const h = hijriYear(t.year);
     <span class="tag">ترجمة عربية · الأصل قبل 1920 (ملك عام)</span>
     {t.drive && <a href={t.drive}>المستند الأصلي على درايف</a>}
   </div>
+  {tg && (
+    <div class="meta tagsrow">
+      <span class="mut" style="font-size:13.5px">وسوم:</span>
+      {(tg.g || []).map((x) => <span class="tag tagg">{x}</span>)}
+      {(tg.c || []).map((x) => <span class="tag tagc">{x}</span>)}
+      {(tg.r || []).map((x) => <span class="tag tagr">{x}</span>)}
+      {tg.p && <span class="tag">{tg.p}</span>}
+    </div>
+  )}
   {srcUrl && <p class="srccard">المصدر الأصلي: <a href={srcUrl} dir="ltr">{srcUrl}</a></p>}
   <p class="note">الأسماء المحرفة والأرقام تحتاج مراجعة مع المصدر. هذه الترجمة غير محققة بعد.</p>
+
+  {mapData && (
+    <section class="mapcard" data-pagefind-ignore>
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+      <h2 class="maph">خريطة المواضع المذكورة في النص</h2>
+      <div id="map" dir="ltr"></div>
+      <p class="mapnote">
+        <span class="lg"><i class="dot dotv"></i> موضع مؤكد</span>
+        <span class="lg"><i class="dot dotu"></i> موضع مرشّح (الهوية غير محسومة)</span>
+        <span class="lg"><i class="dot dotr"></i> منطقة (تمثيل تقريبي)</span>
+        {mapData.routes?.length > 0 && <span class="lg"><i class="dash"></i> مسار الرحلة (مبسّط، بترتيب ورود المواضع في اليوميات)</span>}
+      </p>
+      <p class="mut" style="font-size:13.5px;margin:.3em 0 0">تُعرض فقط المواضع ذات الإحداثيات الموثقة من فهرس الأماكن والقائمة المرجعية؛ المواضع غير المحسومة تُوسم صراحة. بيانات الخريطة © <a href="https://www.openstreetmap.org/copyright">مساهمو OpenStreetMap</a>.</p>
+      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+      <script define:vars={{ mapData }}>
+        (function () {
+          var KINDL = { city: 'مدينة', town: 'بلدة/قرية', site: 'موقع أثري/قلعة', region: 'منطقة', mountain: 'جبل', river: 'نهر/وادي', island: 'جزيرة' };
+          var map = L.map('map', { scrollWheelZoom: false });
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          }).addTo(map);
+          var bounds = [];
+          var byName = {};
+          (mapData.places || []).forEach(function (p) {
+            byName[p.n] = p;
+            var latlng = [p.lat, p.lon];
+            var isArea = (p.k === 'region' || p.k === 'mountain' || p.k === 'river');
+            var color = p.u ? '#c96a1b' : (isArea ? '#7a8c5a' : '#7a4416');
+            if (isArea) {
+              L.circle(latlng, { radius: 9000, color: color, weight: 1, opacity: 0.5, fillColor: color, fillOpacity: 0.07 }).addTo(map);
+            }
+            var m = L.circleMarker(latlng, {
+              radius: p.u ? 6 : (p.k === 'city' ? 6.5 : 5),
+              color: color, weight: p.u ? 2 : 1.2,
+              fillColor: p.u ? '#f4eee0' : color,
+              fillOpacity: p.u ? 0.9 : 0.75, opacity: 0.8
+            }).addTo(map);
+            var pop = '<div dir="rtl" style="font-family:Amiri,serif;font-size:15px"><b>' + (p.lbl || p.n) + '</b><br>' +
+              (KINDL[p.k] || p.k) + (p.c ? ' · ورد ' + p.c + ' مرة في النص' : '') +
+              (p.u ? '<br><span style="color:#c96a1b">موضع مرشّح: الهوية غير محسومة بعد</span>' : '') +
+              (isArea ? '<br><span style="color:#7a8c5a">تمثيل تقريبي لمنطقة</span>' : '') + '</div>';
+            m.bindPopup(pop);
+            m.bindTooltip(p.lbl || p.n, { direction: 'top', offset: [0, -6] });
+          });
+          (mapData.routes || []).forEach(function (r, ri) {
+            var coords = (r.points || []).map(function (n) { return byName[n] ? [byName[n].lat, byName[n].lon] : null; }).filter(Boolean);
+            coords.forEach(function (c) { bounds.push(c); });
+            if (coords.length >= 2) {
+              L.polyline(coords, { color: '#9a5f22', weight: 2.5, dashArray: '7 6', opacity: 0.9 }).addTo(map)
+                .bindPopup('<div dir="rtl" style="font-family:Amiri,serif;font-size:15px"><b>' + r.name + '</b><br>' + (r.note || '') + '</div>');
+              coords.forEach(function (c, i) {
+                L.marker(c, {
+                  icon: L.divIcon({
+                    className: 'rnum',
+                    html: '<span>' + (i + 1) + '</span>',
+                    iconSize: [18, 18], iconAnchor: [9, 9]
+                  }),
+                  interactive: false, keyboard: false
+                }).addTo(map);
+              });
+            }
+          });
+          if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+          else if ((mapData.places||[]).length) map.fitBounds(mapData.places.map(function(p){return [p.lat,p.lon]}), { padding: [30, 30] });
+
+        })();
+      </script>
+    </section>
+  )}
 
   <div class="article-wrap">
     <div class="body">
@@ -78,6 +164,27 @@ const h = hijriYear(t.year);
       </nav>
     )}
   </div>
+
+  <style>
+    .tagsrow{margin-top:-.4em}
+    .tagg{background:#e8dfc8;border-color:#d8c9a4;color:#6b4d16}
+    .tagc{background:#e3e8d8;border-color:#c9d4b4;color:#4d5e33}
+    .tagr{background:#dde6ea;border-color:#bccdd6;color:#33505e}
+    .mapcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;margin:0 0 1.8em;box-shadow:0 1px 5px rgba(80,55,15,.07)}
+    .maph{font-size:20px;color:var(--acc);margin:.1em 0 .6em;display:flex;align-items:center;gap:12px}
+    .maph::before{content:"❧";color:var(--gold);font-size:16px}
+    #map{height:480px;border-radius:10px;border:1px solid var(--line);z-index:1}
+    .mapnote{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--mut);margin:.6em 0 0}
+    .mapnote .lg{display:inline-flex;align-items:center;gap:6px}
+    .dot{display:inline-block;width:11px;height:11px;border-radius:50%}
+    .dotv{background:#7a4416}
+    .dotu{background:#f4eee0;border:2px solid #c96a1b;width:8px;height:8px}
+    .dotr{background:rgba(122,140,90,.25);border:1px solid #7a8c5a}
+    .dash{display:inline-block;width:22px;border-top:2px dashed #9a5f22}
+    .rnum span{display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#fffdf6;border:1.5px solid #9a5f22;color:#9a5f22;font-size:11px;font-weight:700;font-family:Amiri,serif}
+    .leaflet-popup-content{font-family:Amiri,serif}
+    @media (max-width:700px){ #map{height:340px} }
+  </style>
 
   <script is:inline>
     const links = [...document.querySelectorAll('.toc a')];
