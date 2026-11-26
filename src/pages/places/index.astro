@@ -1,0 +1,9 @@
+---
+import L from '../../layouts/L.astro';import data from '../../data/places.json';
+const rows=data.slice(0,3000);
+---
+<L title="الأماكن"><h1>الأماكن</h1><p class="note">استخراج آلي، كل المدخلات «غير مؤكد» حتى تُراجع مع الصفحة والمصدر.</p>
+<input class="f" id="q" placeholder="ابحث"><table id="t"><thead><tr><th>النوع</th><th>الاسم</th><th>أشكال لاتينية</th><th>الذكر</th><th>الحالة</th></tr></thead><tbody>
+{rows.map(r=><tr><td>{r.type}</td><td>{r.name}</td><td dir="ltr">{r.latin}</td><td>{r.n}</td><td><span class="tag">غير مؤكد</span></td></tr>)}
+</tbody></table><p class="mut">{rows.length} مدخل</p>
+<script is:inline>const q=document.getElementById('q');q.oninput=()=>{const v=q.value.trim();document.querySelectorAll('#t tbody tr').forEach(r=>r.style.display=r.textContent.includes(v)?'':'none')}</script></L>
