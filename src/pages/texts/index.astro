@@ -1,9 +1,11 @@
 ---
-import L from '../../layouts/L.astro';import texts from '../../data/texts.json';
+import L from '../../layouts/L.astro';import texts from '../../data/texts.json';import fs from 'node:fs';
+const full = new Set(JSON.parse(fs.readFileSync('src/data/fulltexts.json','utf-8')).map((x)=>x.id));
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
 const rows=[...texts].sort((a,b)=>(a.year||'9999').localeCompare(b.year||'9999'));
 ---
 <L title="سجل النصوص"><h1>سجل النصوص</h1><p class="mut">مرتبة زمنياً. السنة مرشحة من عنوان الملف وتحتاج مراجعة.</p>
 <input class="f" id="q" placeholder="ابحث في السجل"><div id="t">
-{rows.map(r=><div class="it" style="border-bottom:1px solid #e3d9c6;padding:8px 0;overflow-wrap:anywhere"><b>{r.year||'-'}</b> · {r.name}<br>{r.cleared?<span class="tag">للنشر (ما قبل 1920)</span>:<span class="tag">محجوب لحين التحقق</span>}</div>)}
+{rows.map(r=><div class="it" style="border-bottom:1px solid #e3d9c6;padding:8px 0;overflow-wrap:anywhere"><b>{r.year||'-'}</b> · {full.has(r.id)?<a href={b+'/texts/'+r.id+'/'}>{r.name}</a>:r.name}<br>{full.has(r.id)?<span class="tag">منشور (ما قبل 1920)</span>:r.cleared?<span class="tag">قيد الإضافة</span>:<span class="tag">محجوب لحين التحقق</span>}</div>)}
 </div>
 <script is:inline>const q=document.getElementById('q');q.oninput=()=>{const v=q.value.trim();document.querySelectorAll('#t .it').forEach(r=>r.style.display=r.textContent.includes(v)?'':'none')}</script></L>
