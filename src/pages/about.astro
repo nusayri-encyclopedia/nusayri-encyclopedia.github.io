@@ -1,5 +1,6 @@
 ---
 import L from '../layouts/L.astro';
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <L title="عن المشروع"><h1>عن المشروع وقواعد النشر</h1>
 <p style="text-align:center"><img src={b+'/brand/lockup-stacked-ink.png'} alt="موسوعة سوريا الداخلية والساحلية: الأماكن والجماعات والنصوص" style="width:300px;max-width:80%;height:auto"></p>
