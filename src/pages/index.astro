@@ -1,8 +1,39 @@
 ---
-import L from '../layouts/L.astro';import texts from '../data/texts.json';import places from '../data/places.json';import people from '../data/people.json';import dates from '../data/dates.json';
+import L from '../layouts/L.astro';
+import texts from '../data/texts.json';
+import places from '../data/places.json';
+import people from '../data/people.json';
+import dates from '../data/dates.json';
+import fs from 'node:fs';
+import { toAr } from '../lib/hijri';
+const full = JSON.parse(fs.readFileSync('src/data/fulltexts.json','utf-8')).length;
 const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+const cards = [
+  { href: b+'/texts/',  n: texts.length, sub: toAr(full) + ' منشورًا بنصه الكامل', label: 'سجل النصوص', desc: 'نصوص الرحالة والمستشرقين والمؤرخين مترجمة إلى العربية، مرتبة زمنيًا بالميلادي والهجري.' },
+  { href: b+'/places/', n: places.length, sub: 'مرشح آلي', label: 'الأماكن', desc: 'فهرس أسماء البلدان والحصون والقرى المذكورة في النصوص، بأشكالها العربية واللاتينية.' },
+  { href: b+'/people/', n: people.length, sub: 'مرشح آلي', label: 'الأشخاص', desc: 'فهرس الأعلام من سلاطين وأمراء وعلماء ورحالة وردت أسماؤهم في المصادر.' },
+  { href: b+'/dates/',  n: dates.length, sub: 'سنة مذكورة', label: 'التواريخ', desc: 'السنوات الواردة في النصوص مع مواضع ذكرها وملفاتها.' },
+];
 ---
-<L title="الرئيسية"><h1>موسوعة النصيرية والعلويين</h1>
-<p>أرشيف مفهرس لنصوص الرحالة والمستشرقين والمؤرخين (قبل 1920 غالباً) مترجمة إلى العربية، مع فهارس للأماكن والأشخاص والتواريخ، وكل مدخل مربوط بمصدره.</p>
+<L title="الرئيسية">
+<div style="text-align:center;padding:34px 0 10px">
+  <h1 style="font-family:'Aref Ruqaa','Amiri',serif;font-size:44px;margin:0">موسوعة النصيرية والعلويين</h1>
+  <div style="color:var(--gold);font-size:20px;letter-spacing:8px;margin:6px 0 14px">❧ ❧ ❧</div>
+  <p style="max-width:640px;margin:0 auto;font-size:19px;color:#54452c">
+    أرشيف مفهرس لنصوص الرحالة والمستشرقين والمؤرخين (قبل 1920 غالبًا) مترجمة إلى العربية،
+    مع فهارس للأماكن والأشخاص والتواريخ، وكل مدخل مربوط بمصدره.
+  </p>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin:26px 0">
+  {cards.map(c=>(
+    <a href={c.href} style="text-decoration:none;color:inherit">
+      <div style="background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:12px;padding:18px 18px 14px;height:100%;box-shadow:0 2px 8px -4px rgba(80,55,15,.18)">
+        <div style="font-size:20px;font-weight:700;color:var(--acc)">{c.label}</div>
+        <div style="font-size:30px;font-weight:700;color:#3a2d16;line-height:1.4">{toAr(c.n)} <span class="mut" style="font-size:14px">{c.sub}</span></div>
+        <p class="mut" style="font-size:14.5px;margin:.3em 0 0">{c.desc}</p>
+      </div>
+    </a>
+  ))}
+</div>
 <p class="note">النسخة الأولى قيد البناء. الفهارس الآلية معلّمة «غير مؤكد» حتى تُراجع مع المصدر. لا تُنشر هنا إلا نصوص يُرجَّح أنها في الملك العام.</p>
-<ul><li><a href={b+'/texts/'}>سجل النصوص</a> ({texts.length})</li><li><a href={b+'/places/'}>الأماكن</a> ({places.length} مرشح)</li><li><a href={b+'/people/'}>الأشخاص</a> ({people.length} مرشح)</li><li><a href={b+'/dates/'}>التواريخ</a> ({dates.length} سنة)</li></ul></L>
+</L>
