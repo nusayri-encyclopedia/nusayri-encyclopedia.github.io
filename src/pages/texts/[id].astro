@@ -1,18 +1,98 @@
 ---
 import L from '../../layouts/L.astro';
 import fs from 'node:fs';
+import { hijriYear, toAr, yearLabel } from '../../lib/hijri';
+
 export function getStaticPaths() {
   const all = JSON.parse(fs.readFileSync('src/data/fulltexts.json', 'utf-8'));
   return all.map((t) => ({ params: { id: t.id }, props: { t } }));
 }
 const { t } = Astro.props;
 const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const markPages = (s) => esc(s).replace(/\[ص[^\]]*\]/g, (m) => `<span class="pg">${m}</span>`);
+
 const paras = t.text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+const isNumNote = (p) => /^\d{1,2}[.)]/.test(p);
+const isSource = (p) => p.startsWith('المصدر:');
+const isNotice = (p) => p.startsWith('تنبيه');
+const isHeading = (p) =>
+  p.length >= 4 && p.length <= 85 && !isNumNote(p) && !isSource(p) && !isNotice(p) && !/[.!؟?…»]$/.test(p);
+
+// para 0 = كاتب/عنوان فرعي (kicker). الباقي يُصنَّف.
+const kicker = paras.length > 1 && paras[0].length <= 120 ? paras[0] : null;
+const body = kicker ? paras.slice(1) : paras;
+
+const blocks = []; // {kind:'h'|'p'|'note'|'src'|'fn', html|text, id?}
+let inNotes = false;
+body.forEach((p, i) => {
+  if (isSource(p)) { blocks.push({ kind: 'src', text: p }); return; }
+  if (isNotice(p)) { blocks.push({ kind: 'note', text: p }); return; }
+  if (isHeading(p)) {
+    inNotes = /^ملاحظات/.test(p);
+    blocks.push({ kind: 'h', text: p, id: 's' + blocks.length, notes: inNotes });
+    return;
+  }
+  if (inNotes && isNumNote(p)) { blocks.push({ kind: 'fn', html: markPages(p) }); return; }
+  blocks.push({ kind: 'p', html: markPages(p) });
+});
+
+const shown = blocks.filter((x) => x.kind !== 'src');
+const ledeIdx = shown.findIndex((x) => x.kind === 'p');
+const heads = blocks.filter((x) => x.kind === 'h' && !x.notes);
+const toc = heads.length >= 2 ? heads : blocks.filter((x) => x.kind === 'h');
+const srcUrl = blocks.find((x) => x.kind === 'src')?.text.match(/https?:\/\/\S+/)?.[0];
+const h = hijriYear(t.year);
 ---
-<L title={t.title}>
+<L title={t.title} mainClass="wide">
   <p><a href={b + '/texts/'}>← سجل النصوص</a></p>
   <h1>{t.title}</h1>
-  <p class="mut">سنة النشر المرشحة: {t.year} · ترجمة عربية للنص الأصلي المنشور قبل 1920 (ملك عام)</p>
+  {kicker && <p class="kicker">{kicker}</p>}
+  <div class="meta">
+    {t.year && <span class="tag">سنة التأليف المرشحة: {yearLabel(t.year)} تقريبًا</span>}
+    <span class="tag">ترجمة عربية · الأصل قبل 1920 (ملك عام)</span>
+    {t.drive && <a href={t.drive}>المستند الأصلي على درايف</a>}
+  </div>
+  {srcUrl && <p class="srccard">المصدر الأصلي: <a href={srcUrl} dir="ltr">{srcUrl}</a></p>}
   <p class="note">الأسماء المحرفة والأرقام تحتاج مراجعة مع المصدر. هذه الترجمة غير محققة بعد.</p>
-  {paras.map((p) => <p>{p}</p>)}
+
+  <div class="article-wrap">
+    <div class="body">
+      {shown.map((x, i) =>
+        x.kind === 'h'
+          ? <h2 id={x.id}>{x.text}</h2>
+          : x.kind === 'note'
+          ? <p class="note">{x.text}</p>
+          : x.kind === 'fn'
+          ? <p class="fn" set:html={x.html} />
+          : <p class={i === ledeIdx ? 'lede' : ''} set:html={x.html} />
+      )}
+    </div>
+    {toc.length >= 2 && (
+      <nav class="toc" aria-label="فهرس المقالة">
+        <div class="tt">فهرس المقالة</div>
+        <ol>
+          {toc.map((x) => <li><a href={'#' + x.id} data-s={x.id}>{x.text}</a></li>)}
+        </ol>
+      </nav>
+    )}
+  </div>
+
+  <script is:inline>
+    const links = [...document.querySelectorAll('.toc a')];
+    if (links.length && 'IntersectionObserver' in window) {
+      const map = new Map(links.map((a) => [a.dataset.s, a]));
+      const io = new IntersectionObserver((es) => {
+        es.forEach((e) => {
+          const a = map.get(e.target.id);
+          if (a && e.isIntersecting) {
+            links.forEach((x) => x.classList.remove('act'));
+            a.classList.add('act');
+          }
+        });
+      }, { rootMargin: '-90px 0px -70% 0px' });
+      document.querySelectorAll('h2[id]').forEach((h) => io.observe(h));
+    }
+  </script>
 </L>
