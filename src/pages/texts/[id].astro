@@ -18,7 +18,7 @@ const tg = tagsAll[t.id] || null;
 const mapData = mapsAll[t.id] || null;
 
 const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const markPages = (s) => esc(s).replace(/\[ص[^\]]*\]/g, (m) => `<span class="pg">${m}</span>`);
+const markPages = (s) => s.startsWith('<div class="tblwrap">') ? s : esc(s).replace(/\[ص[^\]]*\]/g, (m) => `<span class="pg">${m}</span>`);
 
 const paras = t.text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 const isNumNote = (p) => /^\d{1,2}[.)]/.test(p);
@@ -53,6 +53,17 @@ const srcUrl = blocks.find((x) => x.kind === 'src')?.text.match(/https?:\/\/\S+/
 const h = hijriYear(t.year);
 ---
 <L title={t.title} mainClass="wide">
+  {t.redirect ? (
+    <>
+      <p><a href={b + '/texts/'}>← سجل النصوص</a></p>
+      <h1>{t.title}</h1>
+      <p class="note">دُمج هذا النص مع بقية مقاطع العمل في صفحة واحدة. الانتقال تلقائي إلى الصفحة المدمجة، أو افتحها من هنا: <a href={b + '/texts/' + t.redirect + '/'}>العمل المدمج</a>.</p>
+      <script define:vars={{ u: b + '/texts/' + t.redirect + '/' }}>
+        window.location.replace(u);
+      </script>
+    </>
+  ) : (
+    <>
   <p><a href={b + '/texts/'}>← سجل النصوص</a></p>
   <h1>{t.title}</h1>
   {kicker && <p class="kicker">{kicker}</p>}
@@ -167,6 +178,11 @@ const h = hijriYear(t.year);
 
   <style>
     .tagsrow{margin-top:-.4em}
+    .tblwrap{overflow-x:auto;margin:0 0 1.6em;border:1px solid var(--line);border-radius:10px}
+    table.vt{border-collapse:collapse;width:100%;font-size:15px;background:var(--paper)}
+    table.vt th,table.vt td{border:1px solid var(--line);padding:6px 10px;text-align:right;vertical-align:top}
+    table.vt th{background:var(--soft);color:var(--ink);font-weight:700;white-space:nowrap}
+    table.vt tr:nth-child(even) td{background:#faf6ea}
     .tagg{background:#e8dfc8;border-color:#d8c9a4;color:#6b4d16}
     .tagc{background:#e3e8d8;border-color:#c9d4b4;color:#4d5e33}
     .tagr{background:#dde6ea;border-color:#bccdd6;color:#33505e}
@@ -202,4 +218,6 @@ const h = hijriYear(t.year);
       document.querySelectorAll('h2[id]').forEach((h) => io.observe(h));
     }
   </script>
+    </>
+  )}
 </L>
