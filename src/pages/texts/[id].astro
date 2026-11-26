@@ -1,0 +1,18 @@
+---
+import L from '../../layouts/L.astro';
+import fs from 'node:fs';
+export function getStaticPaths() {
+  const all = JSON.parse(fs.readFileSync('src/data/fulltexts.json', 'utf-8'));
+  return all.map((t) => ({ params: { id: t.id }, props: { t } }));
+}
+const { t } = Astro.props;
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+const paras = t.text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+---
+<L title={t.title}>
+  <p><a href={b + '/texts/'}>← سجل النصوص</a></p>
+  <h1>{t.title}</h1>
+  <p class="mut">سنة النشر المرشحة: {t.year} · ترجمة عربية للنص الأصلي المنشور قبل 1920 (ملك عام)</p>
+  <p class="note">الأسماء المحرفة والأرقام تحتاج مراجعة مع المصدر. هذه الترجمة غير محققة بعد.</p>
+  {paras.map((p) => <p>{p}</p>)}
+</L>
