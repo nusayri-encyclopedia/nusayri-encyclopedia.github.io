@@ -1,0 +1,43 @@
+---
+import L from '../../layouts/L.astro';
+import fs from 'node:fs';
+const b = import.meta.env.BASE_URL.replace(/\/$/, '');
+let changes = [];
+try {
+  const data = JSON.parse(fs.readFileSync('src/data/changelog.json', 'utf-8'));
+  changes = (data.changes || []).slice().sort((x, y) => (x.dt < y.dt ? 1 : -1));
+} catch (e) { changes = []; }
+const kind = { added: { t: 'نص جديد', c: '#1F5C50' }, modified: { t: 'تحديث', c: '#C9A227' } };
+---
+<L title="آخر التحديثات">
+<h1>آخر التحديثات</h1>
+<p class="mut">ما أُضيف إلى الموسوعة وما عُدّل فيها، الأحدث أولًا: النصوص الجديدة، والنصوص المحدّثة، والأماكن والتواريخ التي أُضيفت أو رُسمت حديثًا. تُسجَّل هذه القائمة آليًا مع كل مزامنة.</p>
+{changes.length === 0 && <p>لا تحديثات مسجلة بعد.</p>}
+{changes.map(ch => {
+  const k = kind[ch.type] || kind.modified;
+  return (
+    <div style={`background:var(--paper);border:1px solid var(--line);border-right:4px solid ${k.c};border-radius:10px;padding:12px 16px;margin:0 0 14px;box-shadow:0 1px 4px rgba(80,55,15,.07)`}>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline">
+        <span class="tag" style={`color:#fff;background:${k.c};border-color:${k.c}`}>{k.t}</span>
+        <span class="mut">{ch.dstr}</span>
+      </div>
+      <div style="font-size:19px;font-weight:700;margin:6px 0 2px">
+        {ch.id ? <a href={b + '/texts/' + ch.id + '/'} style="color:var(--acc);text-decoration:none">{ch.title}</a> : ch.title}
+      </div>
+      <p style="margin:.2em 0 .5em;font-size:16px">{ch.desc}</p>
+      {ch.places && ch.places.length > 0 && (
+        <div style="font-size:14.5px;margin:.2em 0">
+          <span style="color:var(--teal);font-weight:700">الأماكن المضافة أو المرسومة حديثًا: </span>
+          {ch.places.map(p => <span class="tag" style="margin-left:5px">{p}</span>)}
+        </div>
+      )}
+      {ch.dates && ch.dates.length > 0 && (
+        <div style="font-size:14.5px;margin:.2em 0">
+          <span style="color:var(--teal);font-weight:700">التواريخ: </span>
+          {ch.dates.map(d => <span class="tag" style="margin-left:5px">{d}</span>)}
+        </div>
+      )}
+    </div>
+  );
+})}
+</L>
