@@ -16,6 +16,10 @@ let mapsAll = {};
 try { mapsAll = JSON.parse(fs.readFileSync('src/data/maps.json', 'utf-8')); } catch (e) {}
 const tg = tagsAll[t.id] || null;
 const mapData = mapsAll[t.id] || null;
+let imgsAll = {};
+try { imgsAll = JSON.parse(fs.readFileSync('src/data/images.json', 'utf-8')); } catch (e) {}
+const imgAfter = {};
+(imgsAll[t.id] || []).forEach((im) => { (imgAfter[im.after] = imgAfter[im.after] || []).push(im); });
 
 const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const markPages = (s) => s.startsWith('<div class="tblwrap">') ? s : esc(s).replace(/\[ص[^\]]*\]/g, (m) => `<span class="pg">${m}</span>`);
@@ -34,15 +38,16 @@ const body = kicker ? paras.slice(1) : paras;
 const blocks = []; // {kind:'h'|'p'|'note'|'src'|'fn', html|text, id?}
 let inNotes = false;
 body.forEach((p, i) => {
-  if (isSource(p)) { blocks.push({ kind: 'src', text: p }); return; }
-  if (isNotice(p)) { blocks.push({ kind: 'note', text: p }); return; }
+  const pi = kicker ? i + 1 : i; // index into paras (matches extractor block numbering)
+  if (isSource(p)) { blocks.push({ kind: 'src', text: p, pi }); return; }
+  if (isNotice(p)) { blocks.push({ kind: 'note', text: p, pi }); return; }
   if (isHeading(p)) {
     inNotes = /^ملاحظات/.test(p);
-    blocks.push({ kind: 'h', text: p, id: 's' + blocks.length, notes: inNotes });
+    blocks.push({ kind: 'h', text: p, id: 's' + blocks.length, notes: inNotes, pi });
     return;
   }
-  if (inNotes && isNumNote(p)) { blocks.push({ kind: 'fn', html: markPages(p) }); return; }
-  blocks.push({ kind: 'p', html: markPages(p) });
+  if (inNotes && isNumNote(p)) { blocks.push({ kind: 'fn', html: markPages(p), pi }); return; }
+  blocks.push({ kind: 'p', html: markPages(p), pi });
 });
 
 const shown = blocks.filter((x) => x.kind !== 'src');
@@ -161,15 +166,23 @@ const h = hijriYear(t.year);
 
   <div class="article-wrap">
     <div class="body">
-      {shown.map((x, i) =>
-        x.kind === 'h'
-          ? <h2 id={x.id}>{x.text}</h2>
-          : x.kind === 'note'
-          ? <p class="note">{x.text}</p>
-          : x.kind === 'fn'
-          ? <p class="fn" set:html={x.html} />
-          : <p class={i === ledeIdx ? 'lede' : ''} set:html={x.html} />
-      )}
+      {shown.map((x, i) => (
+        <>
+          {x.kind === 'h'
+            ? <h2 id={x.id}>{x.text}</h2>
+            : x.kind === 'note'
+            ? <p class="note">{x.text}</p>
+            : x.kind === 'fn'
+            ? <p class="fn" set:html={x.html} />
+            : <p class={i === ledeIdx ? 'lede' : ''} set:html={x.html} />}
+          {(imgAfter[x.pi] || []).map((im) => (
+            <figure class="srcimg" data-pagefind-ignore>
+              <a href={b + '/img/' + t.id + '/' + im.f} target="_blank" rel="noopener"><img src={b + '/img/' + t.id + '/' + im.f} alt={im.cap || 'صورة من المصدر الأصلي'} loading="lazy" /></a>
+              {im.cap && <figcaption>{im.cap}</figcaption>}
+            </figure>
+          ))}
+        </>
+      ))}
     </div>
     {toc.length >= 2 && (
       <nav class="toc" aria-label="فهرس المقالة">
@@ -197,6 +210,9 @@ const h = hijriYear(t.year);
     #map{height:480px;border-radius:10px;border:1px solid var(--line);z-index:1}
     .mapnote{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--mut);margin:.6em 0 0}
     .mapnote .lg{display:inline-flex;align-items:center;gap:6px}
+    .srcimg{margin:0 0 1.6em;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
+    .srcimg img{width:100%;display:block}
+    .srcimg figcaption{font-size:13.5px;color:var(--mut);padding:8px 12px;border-top:1px solid var(--line)}
     .dot{display:inline-block;width:11px;height:11px;border-radius:50%}
     .dotv{background:#7a4416}
     .dotu{background:#f4eee0;border:2px solid #c96a1b;width:8px;height:8px}
