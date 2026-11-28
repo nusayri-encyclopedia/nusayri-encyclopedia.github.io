@@ -76,6 +76,7 @@ const h = hijriYear(t.year);
     {t.year && <span class="tag">سنة التأليف المرشحة: {yearLabel(t.year)} تقريبًا</span>}
     <span class="tag">ترجمة عربية · الأصل قبل 1920 (ملك عام)</span>
     {t.drive && <a href={t.drive}>المستند الأصلي على درايف</a>}
+    {t.drive2 && <a href={t.drive2}>{t.drive2lbl || 'ترجمة موازية على درايف'}</a>}
   </div>
   {tg && (
     <div class="meta tagsrow">
